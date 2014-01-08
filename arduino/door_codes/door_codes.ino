@@ -44,15 +44,19 @@ int pin = 2;
 
 // The minimum duration of a short pulse. A high pulse longer than this but
 // shorter than long_min will be recognized as a SHORT pulse.
-int short_min = 350;
+int short_min = 400;
 
 // The minimum duration of a long pulse. A high pulse longer than this will be
 // recognized as a LONG pulse.
-int long_min = 1200;
+int long_min = 1300;
 
 // The code is sent 19 times, but we don't want to try to read them all, just to
 // give us a little margin in case we get out of alignment.
 int resend_count = 17;
+
+int chance_bits = 2;
+
+int debug_messages = 0;
 
 void setup() {
     Serial.begin(9600);
@@ -89,19 +93,24 @@ int readNextCode(char buf[13])
 
         /* Read the first pulse duration. */
         first = pulseIn(pin, HIGH);
-
+        //if (first > short_min) {
+        //Serial.print("FIRST: ");
+        //Serial.println(first);
+        //}
         /* If there was no pulse, or it was shorter than what we expect a short
          * pulse to be, fail. */
         if (first == 0 || first < short_min) {
             /* If this isn't the first tri-state, there's a good chance it WAS
              * actually part of a code, but it got screwed up. In that case, we
              * have to wait for the next space between codes. */
-            if (i >= 1) {
-                Serial.print("DEBUG: ");
-                Serial.print(i);
-                Serial.print(": ");
-                Serial.println(first);
-                Serial.println("FAIL (first pulse)");
+            if (i >= chance_bits) {
+                if (debug_messages) {
+                    Serial.print("DEBUG: ");
+                    Serial.print(i);
+                    Serial.print(": ");
+                    Serial.println(first);
+                    Serial.println("FAIL (first pulse)");
+                }
                 findNextSpacer();
             }
             return 0;
@@ -113,12 +122,14 @@ int readNextCode(char buf[13])
         if (second == 0 || second < short_min) {
             /* Same as before, if it isn't the first, it's probably a screwed up
              * code, so wait for the next gap. */
-            if (i >= 1) {
-                Serial.print("DEBUG: ");
-                Serial.print(i);
-                Serial.print(": ");
-                Serial.print(second);
-                Serial.println("FAIL (second pulse)");
+            if (i >= chance_bits) {
+                if (debug_messages) {
+                    Serial.print("DEBUG: ");
+                    Serial.print(i);
+                    Serial.print(": ");
+                    Serial.print(second);
+                    Serial.println("FAIL (second pulse)");
+                }
                 findNextSpacer();
             }
             return 0; 
